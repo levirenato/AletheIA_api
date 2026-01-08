@@ -2,9 +2,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
-from app.api.v1.endpoints import health
+from app.api.v1.endpoints import embedding, health
 from app.config import settings
+from app.db.session import engine
 
 
 @asynccontextmanager
@@ -16,13 +18,17 @@ async def lifespan(app: FastAPI):
         f"Database: {settings.postgres_host}:{settings.postgres_port}/{settings.postgres_db}"
     )
 
-    # TODO: Inicializar modelos ONNX aqui (singleton)
-    # TODO: Criar conexão com banco
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+            print("Database connection successful")
+    except Exception as e:
+        print(f"Database connection failed: {e}")
 
     yield
 
-    print("👋 Shutting down...")
-    # TODO: Cleanup (fechar conexões, etc)
+    print("Shutting down...")
+    await engine.dispose()
 
 
 app = FastAPI(
@@ -41,6 +47,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
+app.include_router(health.router, prefix="/api/v1", tags=["health"])
+app.include_router(embedding.router, prefix="/api/v1", tags=["embeddings"])
 
 
 @app.get("/")
