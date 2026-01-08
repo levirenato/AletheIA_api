@@ -13,3 +13,5 @@ wheels/
 Examples/
 debug_output/
 data/
+
+.env
