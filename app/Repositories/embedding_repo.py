@@ -35,7 +35,7 @@ class EmbeddingRepository:
         db_embedding = Embedding(
             user_id=user_id,
             embedding=embedding.tolist(),
-            metadata=metadata or {},
+            meta=metadata or {},
         )
         self.session.add(db_embedding)
         await self.session.flush()
@@ -52,7 +52,7 @@ class EmbeddingRepository:
 
         db_embedding.embedding = embedding.tolist()
         if metadata:
-            db_embedding.metadata = metadata
+            db_embedding.meta = metadata
 
         await self.session.flush()
         await self.session.refresh(db_embedding)

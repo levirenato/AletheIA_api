@@ -21,7 +21,7 @@ class Embedding(Base):
         String(255), unique=True, nullable=False, index=True
     )
     embedding: Mapped[Vector] = mapped_column(Vector(512), nullable=False)
-    metadata: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    meta: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
