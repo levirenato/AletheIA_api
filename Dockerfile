@@ -7,18 +7,19 @@ RUN apt-get update && apt-get install -y \
   libxrender-dev \
   libgomp1 \
   libgl1 \
+  patchelf \
   && rm -rf /var/lib/apt/lists/*
 
 RUN pip install uv
 
 WORKDIR /app
 
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 
-RUN uv pip install --system --no-cache -e .
+RUN uv pip install --system --no-cache -r pyproject.toml
 
-COPY app/ ./app/
+RUN patchelf --clear-execstack /usr/local/lib/python3.11/site-packages/inspireface/modules/core/libs/linux/x64/libInspireFace.so
+
+COPY . .
 
 EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

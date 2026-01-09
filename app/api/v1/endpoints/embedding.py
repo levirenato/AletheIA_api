@@ -1,10 +1,14 @@
+import json
+import uuid
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.Repositories.embedding_repo import EmbeddingRepository
+
+from app.core.queue import r
 
 router = APIRouter()
 
@@ -122,3 +126,38 @@ async def delete_embedding(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Embedding not found for user_id: {user_id}",
         )
+
+
+@router.post("/verify")
+async def verify_and_register(
+    user_id: str = Form(...),
+    selfie: UploadFile = File(...),
+    document: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    job_id = str(uuid.uuid4())
+    s_bytes = await selfie.read()
+    d_bytes = await document.read()
+
+    r.setex(f"img:s:{job_id}", 60, s_bytes)
+    r.setex(f"img:d:{job_id}", 60, d_bytes)
+
+    # 2. Manda para a fila
+    r.rpush("face_tasks", json.dumps({"job_id": job_id, "user_id": user_id}))
+
+    pubsub = r.pubsub()
+    pubsub.subscribe(f"channel:{job_id}")
+
+    message = pubsub.get_message(ignore_subscribe_messages=True, timeout=2.0)
+
+    if message:
+        # Worker terminou rápido!
+        raw_res = r.get(f"result:{job_id}")
+        result = json.loads(raw_res)
+
+        repo = EmbeddingRepository(db)
+        if result["status"] == "success":
+            await repo.create(user_id, np.array(result["embedding"]))
+            return {"status": "success", "data": result}
+
+    return {"status": "processing", "job_id": job_id, "message": "Em processamento..."}

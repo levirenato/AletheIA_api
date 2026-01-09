@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS embeddings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id VARCHAR(255) NOT NULL UNIQUE,
     embedding VECTOR(512) NOT NULL,
-    metadata JSONB DEFAULT '{}',
+    meta JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

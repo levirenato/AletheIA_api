@@ -19,6 +19,19 @@ services:
     networks:
       - aletheia-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: aletheia-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - aletheia-network
+
   api:
     build: .
     container_name: aletheia-api
@@ -27,14 +40,29 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./app:/app/app
-      - ./models:/app/models
+      - .:/app  
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - aletheia-network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: .
+    container_name: aletheia-worker
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - aletheia-network
+    command: python worker.py
 
 volumes:
   postgres_data:

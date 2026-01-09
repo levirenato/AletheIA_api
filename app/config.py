@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     arcface_path: str = "/app/models/arcface.onnx"
     classifier_path: str = "/app/models/mobilenet.onnx"
 
+    # Redis
+    redis_host: str = "redis"
+    redis_port: int = 6379
+    redis_queue_name: str = "aletheia_jobs"
+    image_ttl: int = 60
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
